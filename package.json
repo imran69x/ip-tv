@@ -1,0 +1,9 @@
+{
+  "name": "iptv-stream",
+  "version": "1.0.0",
+  "description": "IPTV Streaming Web App",
+  "scripts": {
+    "dev": "npx -y live-server --port=3000 --no-browser"
+  },
+  "private": true
+}

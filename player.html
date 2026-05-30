@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOYON TV | Player</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/player.css">
+    <link rel="stylesheet" href="css/subscription.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar glass-panel">
+            <div class="sidebar-header">
+                <div class="sidebar-brand">
+                    <span class="logo-icon small">📺</span>
+                    <h2>NOYON TV</h2>
+                </div>
+                <input type="text" id="channel-search" placeholder="🔍 Search channels..." class="search-input">
+            </div>
+            <div class="channel-list" id="channel-list">
+                <div class="loading-text"><div class="spinner"></div><span>Loading...</span></div>
+            </div>
+        </aside>
+
+        <!-- Main -->
+        <main class="main-content">
+            <header class="top-nav glass-panel">
+                <div class="now-playing-badge" id="now-playing-badge">
+                    <span class="live-dot"></span>
+                    <span id="nav-channel-name">Select a channel</span>
+                </div>
+                <div class="user-menu">
+                    <div id="trial-badge" class="trial-pill hidden"></div>
+                    <img id="user-avatar" src="" alt="Avatar" class="avatar hidden">
+                    <span id="user-name">Loading...</span>
+                    <button id="subscription-btn" class="btn-subscription" onclick="document.getElementById('sub-modal').classList.remove('hidden')">⭐ Subscribe</button>
+                    <button id="admin-btn" class="btn-primary hidden" onclick="window.location.href='admin.html'">⚙ Admin</button>
+                    <button onclick="logout()" class="btn-secondary">Logout</button>
+                </div>
+            </header>
+
+            <div class="player-container glass-panel">
+                <div id="video-wrapper">
+                    <video id="video-player" controls playsinline></video>
+                    <div id="no-video-overlay" class="overlay">
+                        <div class="overlay-content">
+                            <div class="logo-icon" style="margin: 0 auto; font-size:32px; width:72px; height:72px;">📺</div>
+                            <p>Select a channel to watch</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="channel-info">
+                    <div>
+                        <h2 id="now-playing-title">No channel selected</h2>
+                        <p id="now-playing-category" style="color:var(--text-secondary)">—</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Subscription Expired Overlay -->
+    <div id="expired-overlay" class="expired-overlay hidden">
+        <div class="glass-panel expired-card">
+            <div class="expired-icon">🔒</div>
+            <h2>Subscription Expired</h2>
+            <p>Your free trial or subscription has ended. Subscribe to continue watching.</p>
+            <button class="btn-primary" onclick="document.getElementById('sub-modal').classList.remove('hidden'); document.getElementById('expired-overlay').classList.add('hidden')">
+                ⭐ View Plans
+            </button>
+            <button class="btn-secondary" style="margin-top:10px" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <!-- Subscription Modal -->
+    <div id="sub-modal" class="modal-overlay hidden">
+        <div class="glass-panel sub-modal-content">
+            <button class="modal-close" onclick="document.getElementById('sub-modal').classList.add('hidden')">✕</button>
+            <div class="sub-header">
+                <span style="font-size:36px">⭐</span>
+                <h2>NOYON TV Premium</h2>
+                <p id="sub-status-text">Loading your subscription status...</p>
+            </div>
+            <div id="sub-plans" class="plans-grid"></div>
+            <div class="payment-info" id="payment-info-box">
+                <h3>📱 How to Pay</h3>
+                <div id="payment-methods-display"></div>
+                <p class="payment-note">💬 After payment, contact admin with your Transaction ID to activate your subscription.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/player.js"></script>
+</body>
+</html>

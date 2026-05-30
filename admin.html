@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOYON TV | Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/subscription.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<div class="admin-layout">
+    <aside class="admin-sidebar glass-panel">
+        <div class="sidebar-header">
+            <div class="brand" onclick="window.location.href='player.html'" style="cursor:pointer">
+                <span style="font-size:22px">📺</span>
+                <h2>NOYON TV</h2>
+            </div>
+            <p style="font-size:11px;color:var(--text-secondary);margin-top:4px">Admin Panel</p>
+        </div>
+        <nav class="admin-nav">
+            <a href="#" class="nav-item active" data-tab="users">👥 Users & Access</a>
+            <a href="#" class="nav-item" data-tab="subscriptions">⭐ Subscriptions</a>
+            <a href="#" class="nav-item" data-tab="channels">📺 Channels</a>
+            <a href="#" class="nav-item" data-tab="packages">💎 Packages</a>
+            <a href="#" class="nav-item" data-tab="payment">💳 Payment</a>
+        </nav>
+    </aside>
+
+    <main class="admin-main">
+
+        <!-- ── USERS TAB ── -->
+        <section id="tab-users" class="tab-content active">
+            <div class="header-actions"><h2>User Management</h2></div>
+            <div class="users-grid">
+                <div class="glass-panel panel-section">
+                    <h3>Registered Users</h3>
+                    <div class="list-container" id="admin-user-list"><div class="loading-text"><div class="spinner"></div></div></div>
+                </div>
+                <div class="glass-panel panel-section">
+                    <h3>Channel Access — <span id="selected-user-name" style="color:var(--accent-cyan)"></span></h3>
+                    <div id="access-controls" class="hidden">
+                        <div class="bulk-actions">
+                            <button id="btn-grant-all" class="btn-primary" style="font-size:12px;padding:6px 12px">Grant All</button>
+                            <button id="btn-revoke-all" class="btn-secondary" style="font-size:12px;padding:6px 12px">Revoke All</button>
+                            <button id="btn-save-access" class="btn-primary" style="font-size:12px;padding:6px 12px;background:var(--success)">Save Access</button>
+                        </div>
+                        <div class="channel-checklist" id="channel-checklist"></div>
+                    </div>
+                    <div id="access-placeholder" class="placeholder-text">Select a user to manage access</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── SUBSCRIPTIONS TAB ── -->
+        <section id="tab-subscriptions" class="tab-content hidden">
+            <div class="header-actions"><h2>Subscription Management</h2></div>
+            <div class="glass-panel" style="padding:24px;overflow-x:auto">
+                <table class="sub-admin-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Expiry</th>
+                            <th>Grant Subscription</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sub-user-table"><tr><td colspan="5"><div class="loading-text"><div class="spinner"></div></div></td></tr></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ── CHANNELS TAB ── -->
+        <section id="tab-channels" class="tab-content hidden">
+            <div class="header-actions">
+                <h2>Channel Database</h2>
+                <button id="btn-add-channel" class="btn-primary">+ Add Channel</button>
+                <button id="btn-import-bd" class="btn-secondary">Auto-Import BD</button>
+            </div>
+            <div class="glass-panel table-container">
+                <table class="admin-table">
+                    <thead><tr><th>Name</th><th>Category</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody id="admin-channel-table"><tr><td colspan="4"><div class="loading-text"><div class="spinner"></div></div></td></tr></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ── PACKAGES TAB ── -->
+        <section id="tab-packages" class="tab-content hidden">
+            <div class="header-actions">
+                <h2>Subscription Packages</h2>
+                <button id="btn-add-package" class="btn-primary">+ Add Package</button>
+            </div>
+            <div id="packages-list" class="glass-panel" style="padding:24px">
+                <div class="loading-text"><div class="spinner"></div></div>
+            </div>
+        </section>
+
+        <!-- ── PAYMENT TAB ── -->
+        <section id="tab-payment" class="tab-content hidden">
+            <div class="header-actions"><h2>Payment Methods</h2></div>
+            <div class="glass-panel" style="padding:28px;max-width:600px">
+                <p style="color:var(--text-secondary);margin-bottom:20px;font-size:14px">Add your payment numbers below. Users will see these when subscribing.</p>
+                <div id="pm-list"></div>
+                <div class="pm-form" style="margin-top:20px;display:flex;flex-direction:column;gap:12px">
+                    <input type="text" id="pm-name" placeholder="Method name (e.g. bKash, Nagad)" class="search-input">
+                    <input type="text" id="pm-number" placeholder="Number (e.g. 01XXXXXXXXX)" class="search-input">
+                    <input type="text" id="pm-type" placeholder="Type (e.g. Personal, Merchant)" class="search-input">
+                    <button id="btn-add-pm" class="btn-primary">+ Add Payment Method</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<!-- Add Channel Modal -->
+<div id="channel-modal" class="modal-overlay hidden">
+    <div class="glass-panel modal-content">
+        <h3 id="modal-title">Add Channel</h3>
+        <form id="channel-form">
+            <input type="hidden" id="channel-id">
+            <div class="form-group"><label>Channel Name</label><input type="text" id="channel-name" required></div>
+            <div class="form-group"><label>Stream URL (M3U8)</label><input type="text" id="channel-url" required></div>
+            <div class="form-group"><label>Category</label><input type="text" id="channel-category"></div>
+            <div class="form-group"><label>Logo URL</label><input type="text" id="channel-logo"></div>
+            <div class="form-group checkbox-group"><input type="checkbox" id="channel-active" checked><label>Active</label></div>
+            <div id="modal-error" class="error-text hidden" style="margin-bottom:12px"></div>
+            <div class="modal-actions">
+                <button type="button" id="btn-cancel-modal" class="btn-secondary">Cancel</button>
+                <button type="submit" id="btn-save-channel" class="btn-primary">Save Channel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Package Modal -->
+<div id="pkg-modal" class="modal-overlay hidden">
+    <div class="glass-panel modal-content">
+        <h3 id="pkg-modal-title">Add Package</h3>
+        <form id="pkg-form">
+            <input type="hidden" id="pkg-id">
+            <div class="form-group"><label>Package Name</label><input type="text" id="pkg-name" placeholder="e.g. Monthly" required></div>
+            <div class="form-group"><label>Price (৳)</label><input type="number" id="pkg-price" required min="0"></div>
+            <div class="form-group"><label>Duration (Days)</label><input type="number" id="pkg-days" required min="1"></div>
+            <div class="form-group"><label>Features (one per line)</label><textarea id="pkg-features" rows="4" placeholder="All BD Channels&#10;HD Quality&#10;24/7 Support"></textarea></div>
+            <div class="form-group checkbox-group"><input type="checkbox" id="pkg-popular"><label>Mark as Popular</label></div>
+            <div class="form-group checkbox-group"><input type="checkbox" id="pkg-active" checked><label>Active</label></div>
+            <div id="pkg-error" class="error-text hidden" style="margin-bottom:12px"></div>
+            <div class="modal-actions">
+                <button type="button" id="btn-cancel-pkg" class="btn-secondary">Cancel</button>
+                <button type="submit" id="btn-save-pkg" class="btn-primary">Save Package</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="js/firebase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

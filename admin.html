@@ -16,8 +16,9 @@
 <div class="admin-layout">
     <aside class="admin-sidebar glass-panel">
         <div class="sidebar-header">
-            <div class="brand" onclick="window.location.href='player.html'" style="cursor:pointer">
-                <span style="font-size:22px">📺</span>
+            <div class="brand" onclick="window.location.href='player.html'" style="cursor:pointer; display: flex; align-items: center; gap: 8px;">
+                <img id="app-logo-img" src="" style="max-height: 28px; max-width: 100%; display: none;" alt="Logo">
+                <span id="app-logo-fallback" style="font-size:22px">📺</span>
                 <h2>NOYON TV</h2>
             </div>
             <p style="font-size:11px;color:var(--text-secondary);margin-top:4px">Admin Panel</p>
@@ -28,6 +29,7 @@
             <a href="#" class="nav-item" data-tab="channels">📺 Channels</a>
             <a href="#" class="nav-item" data-tab="packages">💎 Packages</a>
             <a href="#" class="nav-item" data-tab="payment">💳 Payment</a>
+            <a href="#" class="nav-item" data-tab="settings">⚙️ Settings</a>
         </nav>
     </aside>
 
@@ -79,8 +81,11 @@
         <section id="tab-channels" class="tab-content hidden">
             <div class="header-actions">
                 <h2>Channel Database</h2>
-                <button id="btn-add-channel" class="btn-primary">+ Add Channel</button>
-                <button id="btn-import-bd" class="btn-secondary">Auto-Import BD</button>
+                <div>
+                    <input type="text" id="admin-channel-search" placeholder="🔍 Search channels..." class="search-input" style="margin-right:10px; width:200px">
+                    <button id="btn-add-channel" class="btn-primary">+ Add Channel</button>
+                    <button id="btn-import-bd" class="btn-secondary">Auto-Import BD</button>
+                </div>
             </div>
             <div class="glass-panel table-container">
                 <table class="admin-table">
@@ -113,6 +118,24 @@
                     <input type="text" id="pm-type" placeholder="Type (e.g. Personal, Merchant)" class="search-input">
                     <button id="btn-add-pm" class="btn-primary">+ Add Payment Method</button>
                 </div>
+            </div>
+        </section>
+
+        <!-- ── SETTINGS TAB ── -->
+        <section id="tab-settings" class="tab-content hidden">
+            <div class="header-actions"><h2>App Settings</h2></div>
+            <div class="glass-panel" style="padding:28px;max-width:600px">
+                <div class="form-group">
+                    <label>Logo URL (Direct Image Link)</label>
+                    <input type="text" id="settings-logo-url" placeholder="https://example.com/logo.png" class="search-input" style="width:100%;margin-bottom:10px">
+                    <p style="font-size:12px;color:var(--text-secondary)">This logo will be displayed on the login page and player sidebar.</p>
+                </div>
+                <div style="margin-bottom: 20px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; text-align: center;">
+                    <img id="settings-logo-preview" src="" style="max-height: 80px; max-width: 100%; display: none;" alt="Logo Preview">
+                    <div id="settings-logo-fallback" class="logo-icon" style="font-size:32px;display:none;">📺</div>
+                </div>
+                <button id="btn-save-settings" class="btn-primary">Save Settings</button>
+                <div id="settings-message" style="margin-top:10px;font-size:13px;color:var(--success)" class="hidden"></div>
             </div>
         </section>
 

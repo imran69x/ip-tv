@@ -19,7 +19,8 @@
         <aside class="sidebar glass-panel">
             <div class="sidebar-header">
                 <div class="sidebar-brand">
-                    <span class="logo-icon small">📺</span>
+                    <img id="app-logo-img" src="" style="max-height: 32px; max-width: 100%; display: none; margin-right: 8px;" alt="Logo">
+                    <span id="app-logo-fallback" class="logo-icon small">📺</span>
                     <h2>NOYON TV</h2>
                 </div>
                 <input type="text" id="channel-search" placeholder="🔍 Search channels..." class="search-input">
@@ -51,7 +52,8 @@
                     <video id="video-player" controls playsinline></video>
                     <div id="no-video-overlay" class="overlay">
                         <div class="overlay-content">
-                            <div class="logo-icon" style="margin: 0 auto; font-size:32px; width:72px; height:72px;">📺</div>
+                            <img id="overlay-logo-img" src="" style="max-height: 72px; max-width: 100%; display: none; margin: 0 auto; margin-bottom: 10px;" alt="Logo">
+                            <div id="overlay-logo-fallback" class="logo-icon" style="margin: 0 auto; font-size:32px; width:72px; height:72px;">📺</div>
                             <p>Select a channel to watch</p>
                         </div>
                     </div>

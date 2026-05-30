@@ -3,7 +3,28 @@
 // ADMIN EMAILS — add your Gmail here to get admin access
 const ADMIN_EMAILS = ["noyonxp25@gmail.com"]; // replace with your actual Gmail
 
+// Load App Settings (Logo) globally
+async function loadAppSettings() {
+    try {
+        const doc = await db.collection("settings").doc("general").get();
+        if (doc.exists) {
+            const data = doc.data();
+            if (data.logoUrl) {
+                document.querySelectorAll('#app-logo-img, #overlay-logo-img').forEach(img => {
+                    img.src = data.logoUrl;
+                    img.style.display = 'block';
+                });
+                document.querySelectorAll('#app-logo-fallback, #overlay-logo-fallback').forEach(el => {
+                    el.style.display = 'none';
+                });
+            }
+        }
+    } catch(err) { console.error("Error loading settings:", err); }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+    loadAppSettings();
+
     const loginBtn = document.getElementById("google-login-btn");
     const errorMsg = document.getElementById("error-message");
     const loginLoading = document.getElementById("login-loading");

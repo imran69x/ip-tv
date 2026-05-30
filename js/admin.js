@@ -17,6 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (tab === 'channels') loadChannels();
             if (tab === 'packages') loadPackages();
             if (tab === 'payment') loadPaymentMethods();
+            if (tab === 'settings') loadSettings();
         });
     });
 
@@ -314,6 +315,20 @@ document.addEventListener("DOMContentLoaded", () => {
         btn.textContent = 'Auto-Import BD'; btn.disabled = false;
     });
 
+    // ── ADMIN CHANNEL SEARCH ──
+    const searchInput = document.getElementById('admin-channel-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', e => {
+            const q = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#admin-channel-table tr');
+            rows.forEach(row => {
+                if(row.children.length < 4) return; // skip empty/loading rows
+                const text = (row.children[0].textContent + " " + row.children[1].textContent).toLowerCase();
+                row.style.display = text.includes(q) ? '' : 'none';
+            });
+        });
+    }
+
     // ── PACKAGES ──
     async function loadPackages() {
         const el = document.getElementById('packages-list');
@@ -404,6 +419,50 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('pm-number').value = '';
         document.getElementById('pm-type').value = '';
         loadPaymentMethods();
+    });
+
+    // ── SETTINGS ──
+    async function loadSettings() {
+        try {
+            const doc = await db.collection("settings").doc("general").get();
+            if (doc.exists) {
+                const url = doc.data().logoUrl || '';
+                document.getElementById('settings-logo-url').value = url;
+                if (url) {
+                    document.getElementById('settings-logo-preview').src = url;
+                    document.getElementById('settings-logo-preview').style.display = 'inline-block';
+                    document.getElementById('settings-logo-fallback').style.display = 'none';
+                }
+            }
+        } catch(err) { console.error(err); }
+    }
+
+    document.getElementById('settings-logo-url').addEventListener('input', e => {
+        const url = e.target.value;
+        const img = document.getElementById('settings-logo-preview');
+        const fb = document.getElementById('settings-logo-fallback');
+        if (url) { img.src = url; img.style.display = 'inline-block'; fb.style.display = 'none'; }
+        else { img.style.display = 'none'; fb.style.display = 'inline-block'; }
+    });
+
+    document.getElementById('btn-save-settings').addEventListener('click', async () => {
+        const btn = document.getElementById('btn-save-settings');
+        const msg = document.getElementById('settings-message');
+        btn.textContent = 'Saving...'; btn.disabled = true;
+        const url = document.getElementById('settings-logo-url').value.trim();
+        try {
+            await db.collection("settings").doc("general").set({ logoUrl: url }, { merge: true });
+            msg.textContent = 'Settings saved successfully! Refresh page to see changes globally.';
+            msg.classList.remove('hidden');
+            if (typeof loadAppSettings === 'function') loadAppSettings(); // update current page
+        } catch(err) {
+            msg.textContent = 'Error: ' + err.message;
+            msg.style.color = 'var(--error)';
+            msg.classList.remove('hidden');
+        } finally {
+            btn.textContent = 'Save Settings'; btn.disabled = false;
+            setTimeout(() => msg.classList.add('hidden'), 5000);
+        }
     });
 
     // ── INIT ──

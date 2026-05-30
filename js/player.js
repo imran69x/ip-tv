@@ -11,6 +11,8 @@ document.addEventListener("DOMContentLoaded", () => {
     let allChannels = [];
     let userAccessibleChannelIds = [];
     let userSubscriptionStatus = 'loading'; // trial | active | expired
+    let userFavorites = [];
+    let autoPlayTriggered = false;
 
     const ADMIN_EMAIL = 'noyonxp25@gmail.com';
     const FREE_TRIAL_DAYS = 3;
@@ -44,6 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 subscriptionStatus: isAdmin ? "admin" : "trial",
                 subscriptionExpiry: null,
                 accessibleChannels: [],
+                favorites: [],
                 lastLogin: firebase.firestore.FieldValue.serverTimestamp()
             };
             await userRef.set(userData);
@@ -55,6 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 photoURL: user.photoURL || userData.photoURL || ""
             });
         }
+        userFavorites = userData.favorites || [];
 
         if (isAdmin) {
             document.getElementById('admin-btn').classList.remove('hidden');
@@ -184,6 +188,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 s2.forEach(doc => allChannels.push({ id: doc.id, ...doc.data() }));
             }
             renderChannelList(allChannels);
+
+            // Auto-play BTV on first load
+            if (!autoPlayTriggered) {
+                autoPlayTriggered = true;
+                const btv = allChannels.find(c => c.name.toLowerCase().includes("btv"));
+                const first = allChannels[0];
+                const target = btv || first;
+                if (target) {
+                    const access = userAccessibleChannelIds.includes("ALL") || userAccessibleChannelIds.includes(target.id);
+                    if (access && userSubscriptionStatus !== 'expired') {
+                        // We need the element to add 'active' class, but we just re-rendered.
+                        // Let's just call playChannel without the element, or find it.
+                        playChannel(target, null);
+                    }
+                }
+            }
         } catch (e) {
             channelListEl.innerHTML = '<div class="loading-text">Error loading channels</div>';
         }
@@ -199,16 +219,32 @@ document.addEventListener("DOMContentLoaded", () => {
         channelListEl.innerHTML = '';
         if (!channels.length) { channelListEl.innerHTML = '<div class="loading-text">No channels</div>'; return; }
         const groups = {};
-        channels.forEach(ch => { const cat = ch.category || 'Other'; if (!groups[cat]) groups[cat] = []; groups[cat].push(ch); });
+        
+        // Populate groups including Favorites
+        if (userFavorites.length > 0) {
+            groups["⭐ Favorites"] = [];
+        }
+        
+        channels.forEach(ch => { 
+            if (userFavorites.includes(ch.id)) {
+                groups["⭐ Favorites"].push(ch);
+            }
+            const cat = ch.category || 'Other'; 
+            if (!groups[cat]) groups[cat] = []; 
+            groups[cat].push(ch); 
+        });
+
         Object.entries(groups).forEach(([cat, chs]) => {
+            if (chs.length === 0) return;
             const hdr = document.createElement('div');
             hdr.className = 'category-header';
             hdr.textContent = cat;
             channelListEl.appendChild(hdr);
             chs.forEach(channel => {
                 const access = userAccessibleChannelIds.includes("ALL") || userAccessibleChannelIds.includes(channel.id);
+                const isFav = userFavorites.includes(channel.id);
                 const div = document.createElement('div');
-                div.className = `channel-item ${access ? '' : 'locked'}`;
+                div.className = `channel-item ${access ? '' : 'locked'} ${document.getElementById('now-playing-title')?.textContent === channel.name ? 'active' : ''}`;
                 div.innerHTML = `
                     <div class="channel-logo-wrap">
                         <img src="${channel.logo||''}" class="channel-logo" alt="" onerror="this.style.display='none';this.parentElement.querySelector('.logo-fallback').style.display='flex'">
@@ -218,10 +254,35 @@ document.addEventListener("DOMContentLoaded", () => {
                         <div class="channel-name">${channel.name}</div>
                         <div class="channel-cat">${channel.category||''}</div>
                     </div>
-                    ${!access ? '<span class="locked-icon">🔒</span>' : ''}
+                    <div style="display:flex; align-items:center; gap:8px">
+                        ${!access ? '<span class="locked-icon">🔒</span>' : ''}
+                        <span class="fav-icon" data-id="${channel.id}" style="cursor:pointer; font-size:16px" title="Toggle Favorite">${isFav ? '⭐' : '☆'}</span>
+                    </div>
                 `;
-                if (access) div.addEventListener('click', () => playChannel(channel, div));
-                else div.addEventListener('click', () => document.getElementById('sub-modal').classList.remove('hidden'));
+                
+                // Play action
+                div.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('fav-icon')) return; // ignore click on fav icon
+                    if (access) playChannel(channel, div);
+                    else document.getElementById('sub-modal').classList.remove('hidden');
+                });
+                
+                // Fav action
+                div.querySelector('.fav-icon').addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const id = channel.id;
+                    if (userFavorites.includes(id)) {
+                        userFavorites = userFavorites.filter(f => f !== id);
+                    } else {
+                        userFavorites.push(id);
+                    }
+                    try {
+                        const user = firebase.auth().currentUser;
+                        if (user) await db.collection("users").doc(user.uid).update({ favorites: userFavorites });
+                        renderChannelList(allChannels); // re-render
+                    } catch(err) { console.error("Error saving favorite:", err); }
+                });
+
                 channelListEl.appendChild(div);
             });
         });
@@ -230,7 +291,14 @@ document.addEventListener("DOMContentLoaded", () => {
     function playChannel(channel, el) {
         if (userSubscriptionStatus === 'expired') { document.getElementById('sub-modal').classList.remove('hidden'); return; }
         document.querySelectorAll('.channel-item').forEach(e => e.classList.remove('active'));
-        el.classList.add('active');
+        if (el) el.classList.add('active');
+        // also mark all items with same channel name active (in case it appears in Favorites and category)
+        else {
+            document.querySelectorAll('.channel-item').forEach(e => {
+                if(e.querySelector('.channel-name')?.textContent === channel.name) e.classList.add('active');
+            });
+        }
+
         document.getElementById('now-playing-title').textContent = channel.name;
         document.getElementById('now-playing-category').textContent = channel.category || '';
         document.getElementById('nav-channel-name').textContent = channel.name;

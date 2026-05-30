@@ -1,0 +1,65 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: check if user is authenticated
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Helper: check if user is admin (by email)
+    function isAdmin() {
+      return isAuth() && request.auth.token.email in [
+        'noyonxp25@gmail.com'
+      ];
+    }
+
+    // ── CHANNELS ──
+    // Only logged-in users can read channels
+    match /channels/{docId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // ── USERS ──
+    // Users can read/write their own document; admins can read all
+    match /users/{userId} {
+      allow read, write: if isAuth() && request.auth.uid == userId;
+      allow read, write: if isAdmin();
+    }
+
+    // ── SUBSCRIPTION PACKAGES ──
+    // Anyone logged in can read packages; only admin can write
+    match /subscription_packages/{docId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // ── PAYMENT SETTINGS ──
+    // Anyone logged in can read; only admin can write
+    match /payment_settings/{docId} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // ── PAYMENT REQUESTS ──
+    // Users can create their own request; admins can read and update all
+    match /payment_requests/{docId} {
+      allow create: if isAuth();
+      allow read, update: if isAdmin();
+    }
+
+    // ── APP SETTINGS ──
+    // Anyone can read (for logo etc); only admin can write
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Deny all other reads/writes by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

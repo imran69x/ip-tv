@@ -28,7 +28,8 @@
             <a href="#" class="nav-item" data-tab="subscriptions">⭐ Subscriptions</a>
             <a href="#" class="nav-item" data-tab="channels">📺 Channels</a>
             <a href="#" class="nav-item" data-tab="packages">💎 Packages</a>
-            <a href="#" class="nav-item" data-tab="payment">💳 Payment</a>
+            <a href="#" class="nav-item" data-tab="payment">💳 Payment Settings</a>
+            <a href="#" class="nav-item" data-tab="requests">📥 Payment Requests</a>
             <a href="#" class="nav-item" data-tab="settings">⚙️ Settings</a>
         </nav>
     </aside>
@@ -89,8 +90,8 @@
             </div>
             <div class="glass-panel table-container">
                 <table class="admin-table">
-                    <thead><tr><th>Name</th><th>Category</th><th>Status</th><th>Free Access</th><th>Actions</th></tr></thead>
-                    <tbody id="admin-channel-table"><tr><td colspan="4"><div class="loading-text"><div class="spinner"></div></div></td></tr></tbody>
+                    <thead><tr><th>Name</th><th>Category</th><th>Status</th><th>Free</th><th>📌 Pin</th><th>Actions</th></tr></thead>
+                    <tbody id="admin-channel-table"><tr><td colspan="6"><div class="loading-text"><div class="spinner"></div></div></td></tr></tbody>
                 </table>
             </div>
         </section>
@@ -118,6 +119,52 @@
                     <input type="text" id="pm-type" placeholder="Type (e.g. Personal, Merchant)" class="search-input">
                     <button id="btn-add-pm" class="btn-primary">+ Add Payment Method</button>
                 </div>
+            </div>
+        </section>
+
+        <!-- ── REQUESTS TAB ── -->
+        <section id="tab-requests" class="tab-content hidden">
+            <div class="header-actions">
+                <h2>Pending Subscription Requests</h2>
+            </div>
+            <div class="table-container glass-panel">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>User</th>
+                            <th>Package</th>
+                            <th>Trx ID</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="requests-tbody">
+                        <tr><td colspan="5" style="text-align:center">Loading requests...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ── REQUESTS TAB ── -->
+        <section id="tab-requests" class="tab-content hidden">
+            <div class="header-actions">
+                <h2>Pending Subscription Requests</h2>
+            </div>
+            <div class="table-container glass-panel">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>User</th>
+                            <th>Package</th>
+                            <th>Trx ID</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="requests-tbody">
+                        <tr><td colspan="5" style="text-align:center">Loading requests...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </section>
 

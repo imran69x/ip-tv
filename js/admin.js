@@ -17,6 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (tab === 'channels') loadChannels();
             if (tab === 'packages') loadPackages();
             if (tab === 'payment') loadPaymentMethods();
+            if (tab === 'requests') loadPaymentRequests();
             if (tab === 'settings') loadSettings();
         });
     });
@@ -39,9 +40,10 @@ document.addEventListener("DOMContentLoaded", () => {
         errEl.classList.add('hidden');
         btn.textContent = 'Saving...'; btn.disabled = true;
         const id = document.getElementById('channel-id').value;
+        const rawUrl = document.getElementById('channel-url').value.trim();
         const data = {
             name: document.getElementById('channel-name').value,
-            url: document.getElementById('channel-url').value,
+            url: btoa(rawUrl), // Base64 encode to obfuscate stream URL
             category: document.getElementById('channel-category').value,
             logo: document.getElementById('channel-logo').value,
             isActive: document.getElementById('channel-active').checked
@@ -249,13 +251,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 const c = doc.data();
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${c.name}</td>
+                    <td>${c.isPinned ? '<span style="color:var(--accent-cyan)">📌 </span>' : ''}${c.name}</td>
                     <td>${c.category||'-'}</td>
-                    <td><span style="color:${c.isActive?'var(--success)':'var(--error)'}">${c.isActive?'Active':'Off'}</span></td>
+                    <td><span style="color:${c.isActive?'var(--success)':'var(--error)'}"
+                        >${c.isActive?'Active':'Off'}</span></td>
                     <td>
                         <label style="display:flex;align-items:center;cursor:pointer;font-size:12px;gap:6px">
                             <input type="checkbox" class="toggle-free" data-id="${doc.id}" ${c.isFree ? 'checked' : ''}>
                             Free
+                        </label>
+                    </td>
+                    <td>
+                        <label style="display:flex;align-items:center;cursor:pointer;gap:6px">
+                            <input type="checkbox" class="toggle-pin" data-id="${doc.id}" ${c.isPinned ? 'checked' : ''}
+                                style="accent-color:var(--accent-cyan);width:16px;height:16px;cursor:pointer;">
+                            <span style="font-size:12px;color:${c.isPinned ? 'var(--accent-cyan)' : 'var(--text-secondary)'}">
+                                ${c.isPinned ? 'Pinned' : 'Pin'}
+                            </span>
                         </label>
                     </td>
                     <td style="display:flex;gap:6px">
@@ -271,7 +283,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     const d = doc.data();
                     document.getElementById('channel-id').value = id;
                     document.getElementById('channel-name').value = d.name;
-                    document.getElementById('channel-url').value = d.url;
+                    // Decode URL for editing (it's stored as Base64)
+                    let displayUrl = d.url;
+                    try { if (d.url && !d.url.startsWith('http')) displayUrl = atob(d.url); } catch(e) {}
+                    document.getElementById('channel-url').value = displayUrl;
                     document.getElementById('channel-category').value = d.category||'';
                     document.getElementById('channel-logo').value = d.logo||'';
                     document.getElementById('channel-active').checked = d.isActive;
@@ -295,7 +310,21 @@ document.addEventListener("DOMContentLoaded", () => {
                         await db.collection("channels").doc(id).update({ isFree });
                     } catch(err) {
                         alert("Error updating free status: " + err.message);
-                        e.target.checked = !isFree; // revert on error
+                        e.target.checked = !isFree;
+                    }
+                });
+            });
+
+            document.querySelectorAll('.toggle-pin').forEach(cb => {
+                cb.addEventListener('change', async e => {
+                    const id = e.target.getAttribute('data-id');
+                    const isPinned = e.target.checked;
+                    try {
+                        await db.collection("channels").doc(id).update({ isPinned });
+                        loadChannels(); // re-render to show pin icon
+                    } catch(err) {
+                        alert("Error updating pin status: " + err.message);
+                        e.target.checked = !isPinned;
                     }
                 });
             });
@@ -326,7 +355,11 @@ document.addEventListener("DOMContentLoaded", () => {
             { name:"France 24", url:"https://static.france24.com/live/F24_EN_LO_HLS/live_web.m3u8", category:"International News" },
         ];
         const batch = db.batch();
-        channels.forEach(ch => batch.set(db.collection("channels").doc(), { ...ch, logo:"", isFree: false, isActive:true }));
+        channels.forEach(ch => batch.set(db.collection("channels").doc(), { 
+            ...ch, 
+            url: btoa(ch.url), // encode URL
+            logo:"", isFree: false, isActive:true 
+        }));
         await batch.commit();
         alert("Imported successfully!");
         loadChannels();
@@ -438,6 +471,108 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('pm-type').value = '';
         loadPaymentMethods();
     });
+
+    // ── PAYMENT REQUESTS ──
+    async function loadPaymentRequests() {
+        const tbody = document.getElementById('requests-tbody');
+        tbody.innerHTML = '<tr><td colspan="5"><div class="loading-text"><div class="spinner"></div></div></td></tr>';
+        try {
+            const snap = await db.collection("payment_requests").where("status", "==", "pending").get();
+            tbody.innerHTML = '';
+            const docs = [];
+            snap.forEach(doc => docs.push(doc));
+            // Sort newest first client-side (no composite index needed)
+            docs.sort((a, b) => {
+                const aTime = a.data().createdAt?.toMillis() || 0;
+                const bTime = b.data().createdAt?.toMillis() || 0;
+                return bTime - aTime;
+            });
+            if (docs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary)">No pending requests</td></tr>';
+                return;
+            }
+            docs.forEach(doc => {
+                const req = doc.data();
+                const tr = document.createElement('tr');
+                const dateStr = req.createdAt ? req.createdAt.toDate().toLocaleString() : 'Unknown';
+                tr.innerHTML = `
+                    <td style="font-size:12px;color:var(--text-secondary)">${dateStr}</td>
+                    <td>
+                        <div style="font-weight:600">${req.userName || 'Unknown'}</div>
+                        <div style="font-size:11px;color:var(--text-secondary)">${req.userEmail}</div>
+                    </td>
+                    <td>
+                        <div style="color:var(--accent-cyan)">${req.packageName}</div>
+                        <div style="font-size:11px">${req.packageDays} Days</div>
+                    </td>
+                    <td style="font-family:monospace;font-size:14px">${req.transactionId}</td>
+                    <td>
+                        <div style="display:flex;gap:8px">
+                            <button class="btn-primary btn-approve-req" data-id="${doc.id}" data-uid="${req.userId}" data-days="${req.packageDays}" style="padding:6px 12px;font-size:12px;background:rgba(16,185,129,0.2);border:1px solid var(--success);color:var(--success);">Approve</button>
+                            <button class="btn-secondary btn-reject-req" data-id="${doc.id}" style="padding:6px 12px;font-size:12px;color:#ff6b6b;border-color:rgba(255,107,107,0.3)">Reject</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.querySelectorAll('.btn-approve-req').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const reqId = e.target.getAttribute('data-id');
+                    const uid = e.target.getAttribute('data-uid');
+                    const days = parseInt(e.target.getAttribute('data-days'));
+                    
+                    e.target.textContent = '...';
+                    e.target.disabled = true;
+                    
+                    const expiry = new Date();
+                    expiry.setDate(expiry.getDate() + days);
+                    
+                    try {
+                        const batch = db.batch();
+                        batch.update(db.collection("users").doc(uid), {
+                            subscriptionStatus: "active",
+                            subscriptionExpiry: firebase.firestore.Timestamp.fromDate(expiry),
+                            accessibleChannels: []
+                        });
+                        batch.update(db.collection("payment_requests").doc(reqId), {
+                            status: "approved",
+                            processedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        await batch.commit();
+                        loadPaymentRequests();
+                    } catch(err) {
+                        alert("Error approving request: " + err.message);
+                        e.target.textContent = 'Approve';
+                        e.target.disabled = false;
+                    }
+                });
+            });
+
+            document.querySelectorAll('.btn-reject-req').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    if(!confirm("Are you sure you want to reject this transaction?")) return;
+                    const reqId = e.target.getAttribute('data-id');
+                    e.target.textContent = '...';
+                    e.target.disabled = true;
+                    try {
+                        await db.collection("payment_requests").doc(reqId).update({
+                            status: "rejected",
+                            processedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        loadPaymentRequests();
+                    } catch(err) {
+                        alert("Error rejecting request: " + err.message);
+                        e.target.textContent = 'Reject';
+                        e.target.disabled = false;
+                    }
+                });
+            });
+
+        } catch(err) {
+            tbody.innerHTML = `<tr><td colspan="5" style="color:#ff6b6b;padding:16px">${err.message}</td></tr>`;
+        }
+    }
 
     // ── SETTINGS ──
     let currentLogoBase64 = '';

@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let userSubscriptionStatus = 'loading'; // trial | active | expired
     let userFavorites = [];
     let autoPlayTriggered = false;
+    let selectedPackage = null;
 
     const ADMIN_EMAIL = 'noyonxp25@gmail.com';
     const FREE_TRIAL_DAYS = 3;
@@ -146,6 +147,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const p = doc.data();
                 const card = document.createElement('div');
                 card.className = 'plan-card';
+                card.style.cursor = 'pointer';
                 if (p.isPopular) card.classList.add('popular');
                 card.innerHTML = `
                     ${p.isPopular ? '<div class="popular-badge">Most Popular</div>' : ''}
@@ -153,6 +155,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div class="plan-price">৳${p.price}<span>/${p.durationDays} days</span></div>
                     <div class="plan-features">${(p.features || []).map(f => `<div>✓ ${f}</div>`).join('')}</div>
                 `;
+                card.addEventListener('click', () => {
+                    selectedPackage = { id: doc.id, ...p };
+                    document.getElementById('pay-pkg-name').textContent = p.name;
+                    document.getElementById('pay-pkg-price').textContent = `৳${p.price}`;
+                    document.getElementById('step-plans').classList.add('hidden');
+                    document.getElementById('step-payment').classList.remove('hidden');
+                });
                 plansGrid.appendChild(card);
             });
             if (plansSnap.empty) {
@@ -163,15 +172,32 @@ document.addEventListener("DOMContentLoaded", () => {
         // Load payment methods
         try {
             const paySnap = await db.collection("payment_settings").doc("methods").get();
+            const payMethodsList = document.getElementById('pay-methods-list');
             if (paySnap.exists) {
                 const methods = paySnap.data().methods || [];
-                paymentBox.innerHTML = methods.map(m =>
-                    `<div class="pay-method"><strong>${m.name}</strong>: ${m.number} ${m.type ? `(${m.type})` : ''}</div>`
+                payMethodsList.innerHTML = methods.map(m =>
+                    `<div style="display:flex; justify-content:space-between; align-items:center; background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--border-glass);">
+                        <div>
+                            <div style="font-size:12px; color:var(--accent-cyan); font-weight:bold; text-transform:uppercase;">${m.name} ${m.type ? `(${m.type})` : ''}</div>
+                            <div style="font-size:16px; font-weight:bold; letter-spacing:1px;">${m.number}</div>
+                        </div>
+                        <button class="btn-secondary copy-btn" data-num="${m.number}" style="padding:6px 12px; font-size:12px;">Copy</button>
+                    </div>`
                 ).join('');
+                
+                document.querySelectorAll('.copy-btn').forEach(btn => {
+                    btn.addEventListener('click', e => {
+                        const num = e.target.getAttribute('data-num');
+                        navigator.clipboard.writeText(num);
+                        const oldText = e.target.textContent;
+                        e.target.textContent = 'Copied!';
+                        setTimeout(() => e.target.textContent = oldText, 2000);
+                    });
+                });
             } else {
-                paymentBox.innerHTML = '<p style="color:var(--text-secondary)">Payment info not set by admin yet.</p>';
+                payMethodsList.innerHTML = '<p style="color:var(--text-secondary)">Payment info not set by admin yet.</p>';
             }
-        } catch(e) { paymentBox.innerHTML = ''; }
+        } catch(e) { console.error(e); }
     }
 
     async function loadChannels() {
@@ -220,9 +246,14 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!channels.length) { channelListEl.innerHTML = '<div class="loading-text">No channels</div>'; return; }
         const groups = {};
         
-        // Populate groups including Favorites and Free Channels
+        // Pinned/Featured channels go FIRST
+        const pinnedChannels = channels.filter(ch => ch.isPinned);
+        if (pinnedChannels.length > 0) groups["📌 Featured"] = pinnedChannels;
+
+        // Favorites
         if (userFavorites.length > 0) groups["⭐ Favorites"] = [];
         
+        // Free channels
         let hasFreeChannels = false;
         channels.forEach(ch => { if (ch.isFree) hasFreeChannels = true; });
         if (hasFreeChannels) groups["🆓 Free Channels"] = [];
@@ -295,11 +326,25 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    function decodeStreamUrl(url) {
+        if (!url) return '';
+        try {
+            // If it looks like Base64 encoded, decode it
+            if (!url.startsWith('http')) {
+                return atob(url);
+            }
+            return url;
+        } catch(e) {
+            return url; // fallback to raw
+        }
+    }
+
     function playChannel(channel, el) {
         if (!channel.isFree && userSubscriptionStatus === 'expired') { 
             document.getElementById('sub-modal').classList.remove('hidden'); 
             return; 
         }
+        const streamUrl = decodeStreamUrl(channel.url);
         document.querySelectorAll('.channel-item').forEach(e => e.classList.remove('active'));
         if (el) el.classList.add('active');
         // also mark all items with same channel name active (in case it appears in Favorites and category)
@@ -317,14 +362,14 @@ document.addEventListener("DOMContentLoaded", () => {
         if (hls) { hls.destroy(); hls = null; }
         if (Hls.isSupported()) {
             hls = new Hls({ manifestLoadingTimeOut: 15000, levelLoadingTimeOut: 15000 });
-            hls.loadSource(channel.url);
+            hls.loadSource(streamUrl);
             hls.attachMedia(video);
             hls.on(Hls.Events.MANIFEST_PARSED, () => { noVideoOverlay.style.display = 'none'; video.play().catch(()=>{}); });
             hls.on(Hls.Events.ERROR, (e, d) => {
                 if (d.fatal) noVideoOverlay.innerHTML = '<div class="overlay-content"><div style="font-size:36px">⚠️</div><p>Stream unavailable</p><small>Channel may be offline</small></div>';
             });
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = channel.url;
+            video.src = streamUrl;
             video.onloadedmetadata = () => { noVideoOverlay.style.display = 'none'; video.play().catch(()=>{}); };
             video.onerror = () => { noVideoOverlay.innerHTML = '<div class="overlay-content"><div style="font-size:36px">⚠️</div><p>Stream unavailable</p></div>'; };
         }
@@ -336,6 +381,60 @@ document.addEventListener("DOMContentLoaded", () => {
             renderChannelList(allChannels.filter(c => c.name.toLowerCase().includes(q) || (c.category||'').toLowerCase().includes(q)));
         });
     }
+
+    // Handle Trx Submit
+    document.getElementById('btn-submit-trx').addEventListener('click', async () => {
+        const trxId = document.getElementById('trx-id-input').value.trim();
+        const errEl = document.getElementById('pay-error');
+        const sucEl = document.getElementById('pay-success');
+        const btn = document.getElementById('btn-submit-trx');
+        
+        errEl.classList.add('hidden');
+        sucEl.classList.add('hidden');
+        
+        if (!trxId) {
+            errEl.textContent = 'Please enter your Transaction ID';
+            errEl.classList.remove('hidden');
+            return;
+        }
+        if (!selectedPackage) return;
+        
+        btn.textContent = 'Submitting...';
+        btn.disabled = true;
+        
+        try {
+            const user = firebase.auth().currentUser;
+            await db.collection('payment_requests').add({
+                userId: user.uid,
+                userEmail: user.email,
+                userName: user.displayName || user.email,
+                packageId: selectedPackage.id,
+                packageName: selectedPackage.name,
+                packageDays: selectedPackage.durationDays,
+                transactionId: trxId,
+                status: 'pending',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            document.getElementById('trx-id-input').value = '';
+            sucEl.textContent = 'Request submitted! Please wait for admin approval.';
+            sucEl.classList.remove('hidden');
+            
+            setTimeout(() => {
+                document.getElementById('sub-modal').classList.add('hidden');
+                document.getElementById('step-payment').classList.add('hidden');
+                document.getElementById('step-plans').classList.remove('hidden');
+                sucEl.classList.add('hidden');
+            }, 3000);
+            
+        } catch (error) {
+            errEl.textContent = 'Error: ' + error.message;
+            errEl.classList.remove('hidden');
+        } finally {
+            btn.textContent = 'Submit Request';
+            btn.disabled = false;
+        }
+    });
 });
 
 function getDefaultChannels() {

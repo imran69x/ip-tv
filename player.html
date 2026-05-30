@@ -85,17 +85,54 @@
     <div id="sub-modal" class="modal-overlay hidden">
         <div class="glass-panel sub-modal-content">
             <button class="modal-close" onclick="document.getElementById('sub-modal').classList.add('hidden')">✕</button>
-            <div class="sub-header">
-                <span style="font-size:36px">⭐</span>
-                <h2>NOYON TV Premium</h2>
-                <p id="sub-status-text">Loading your subscription status...</p>
+            
+            <!-- Step 1: Select Plan -->
+            <div id="step-plans">
+                <div class="sub-header">
+                    <span style="font-size:36px">⭐</span>
+                    <h2>NOYON TV Premium</h2>
+                    <p id="sub-status-text">Loading your subscription status...</p>
+                </div>
+                <div id="sub-plans" class="plans-grid"></div>
             </div>
-            <div id="sub-plans" class="plans-grid"></div>
-            <div class="payment-info" id="payment-info-box">
-                <h3>📱 How to Pay</h3>
-                <div id="payment-methods-display"></div>
-                <p class="payment-note">💬 After payment, contact admin with your Transaction ID to activate your subscription.</p>
+
+            <!-- Step 2: Make Payment -->
+            <div id="step-payment" class="hidden">
+                <div class="sub-header">
+                    <h2>Complete Payment</h2>
+                    <p>Follow the instructions below to activate your package</p>
+                </div>
+                <div class="payment-step-card" style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 24px; text-align: left; border: 1px solid var(--border-glass);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border-glass); padding-bottom: 16px; margin-bottom: 16px;">
+                        <div>
+                            <span style="color:var(--text-secondary); font-size:12px;">Selected Package</span>
+                            <h3 id="pay-pkg-name" style="color:var(--accent-cyan); font-size:18px;">Loading...</h3>
+                        </div>
+                        <div style="text-align:right;">
+                            <span style="color:var(--text-secondary); font-size:12px;">Amount to Pay</span>
+                            <h3 id="pay-pkg-price" style="font-size:24px;">৳0</h3>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <span style="color:var(--text-secondary); font-size:12px; margin-bottom:8px; display:block;">Send money to:</span>
+                        <div id="pay-methods-list">
+                            <!-- Methods injected here -->
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(0,212,255,0.05); border: 1px solid rgba(0,212,255,0.2); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                        <label style="font-size:13px; color:var(--text-secondary); margin-bottom:8px; display:block;">Enter Transaction ID (TrxID)</label>
+                        <input type="text" id="trx-id-input" class="search-input" placeholder="e.g. 8A7B6C5D4E" style="width:100%; margin-bottom:12px;">
+                        <button id="btn-submit-trx" class="btn-primary" style="width:100%; padding:12px;">Submit Request</button>
+                        <div id="pay-error" class="error-text hidden" style="margin-top:10px;"></div>
+                        <div id="pay-success" style="color:var(--success); font-size:13px; margin-top:10px; text-align:center; font-weight:bold;" class="hidden"></div>
+                    </div>
+
+                    <button class="btn-secondary" onclick="document.getElementById('step-payment').classList.add('hidden'); document.getElementById('step-plans').classList.remove('hidden');" style="width:100%;">Back to Plans</button>
+                </div>
             </div>
+
         </div>
     </div>
 

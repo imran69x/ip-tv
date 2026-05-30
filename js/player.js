@@ -220,28 +220,35 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!channels.length) { channelListEl.innerHTML = '<div class="loading-text">No channels</div>'; return; }
         const groups = {};
         
-        // Populate groups including Favorites
-        if (userFavorites.length > 0) {
-            groups["⭐ Favorites"] = [];
-        }
+        // Populate groups including Favorites and Free Channels
+        if (userFavorites.length > 0) groups["⭐ Favorites"] = [];
+        
+        let hasFreeChannels = false;
+        channels.forEach(ch => { if (ch.isFree) hasFreeChannels = true; });
+        if (hasFreeChannels) groups["🆓 Free Channels"] = [];
         
         channels.forEach(ch => { 
-            if (userFavorites.includes(ch.id)) {
-                groups["⭐ Favorites"].push(ch);
-            }
+            if (userFavorites.includes(ch.id)) groups["⭐ Favorites"].push(ch);
+            if (ch.isFree) groups["🆓 Free Channels"].push(ch);
+            
             const cat = ch.category || 'Other'; 
             if (!groups[cat]) groups[cat] = []; 
             groups[cat].push(ch); 
         });
 
         Object.entries(groups).forEach(([cat, chs]) => {
+            // Deduplicate items in categories if they appear in Favorites or Free Channels
+            // Actually, showing them in both places is fine and standard.
             if (chs.length === 0) return;
             const hdr = document.createElement('div');
             hdr.className = 'category-header';
             hdr.textContent = cat;
             channelListEl.appendChild(hdr);
+            
+            // To prevent rendering duplicates inside the *same* visual group if we messed up array pushes, we use a Set.
+            // But here it's simple enough.
             chs.forEach(channel => {
-                const access = userAccessibleChannelIds.includes("ALL") || userAccessibleChannelIds.includes(channel.id);
+                const access = channel.isFree || userAccessibleChannelIds.includes("ALL") || userAccessibleChannelIds.includes(channel.id);
                 const isFav = userFavorites.includes(channel.id);
                 const div = document.createElement('div');
                 div.className = `channel-item ${access ? '' : 'locked'} ${document.getElementById('now-playing-title')?.textContent === channel.name ? 'active' : ''}`;
@@ -289,7 +296,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function playChannel(channel, el) {
-        if (userSubscriptionStatus === 'expired') { document.getElementById('sub-modal').classList.remove('hidden'); return; }
+        if (!channel.isFree && userSubscriptionStatus === 'expired') { 
+            document.getElementById('sub-modal').classList.remove('hidden'); 
+            return; 
+        }
         document.querySelectorAll('.channel-item').forEach(e => e.classList.remove('active'));
         if (el) el.classList.add('active');
         // also mark all items with same channel name active (in case it appears in Favorites and category)

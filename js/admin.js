@@ -44,7 +44,6 @@ document.addEventListener("DOMContentLoaded", () => {
             url: document.getElementById('channel-url').value,
             category: document.getElementById('channel-category').value,
             logo: document.getElementById('channel-logo').value,
-            isFree: document.getElementById('channel-free').checked,
             isActive: document.getElementById('channel-active').checked
         };
         try {
@@ -252,9 +251,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 tr.innerHTML = `
                     <td>${c.name}</td>
                     <td>${c.category||'-'}</td>
+                    <td><span style="color:${c.isActive?'var(--success)':'var(--error)'}">${c.isActive?'Active':'Off'}</span></td>
                     <td>
-                        <span style="color:${c.isActive?'var(--success)':'var(--error)'}">${c.isActive?'Active':'Off'}</span>
-                        ${c.isFree ? '<span style="background:var(--success); color:black; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:6px; font-weight:bold;">🆓 Free</span>' : ''}
+                        <label style="display:flex;align-items:center;cursor:pointer;font-size:12px;gap:6px">
+                            <input type="checkbox" class="toggle-free" data-id="${doc.id}" ${c.isFree ? 'checked' : ''}>
+                            Free
+                        </label>
                     </td>
                     <td style="display:flex;gap:6px">
                         <button class="btn-secondary btn-edit" data-id="${doc.id}" style="padding:4px 10px;font-size:12px">Edit</button>
@@ -272,7 +274,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     document.getElementById('channel-url').value = d.url;
                     document.getElementById('channel-category').value = d.category||'';
                     document.getElementById('channel-logo').value = d.logo||'';
-                    document.getElementById('channel-free').checked = !!d.isFree;
                     document.getElementById('channel-active').checked = d.isActive;
                     document.getElementById('modal-title').textContent = 'Edit Channel';
                     document.getElementById('modal-error').classList.add('hidden');
@@ -286,9 +287,21 @@ document.addEventListener("DOMContentLoaded", () => {
                     loadChannels();
                 });
             });
-            if (snap.empty) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-secondary)">No channels yet</td></tr>';
+            document.querySelectorAll('.toggle-free').forEach(cb => {
+                cb.addEventListener('change', async e => {
+                    const id = e.target.getAttribute('data-id');
+                    const isFree = e.target.checked;
+                    try {
+                        await db.collection("channels").doc(id).update({ isFree });
+                    } catch(err) {
+                        alert("Error updating free status: " + err.message);
+                        e.target.checked = !isFree; // revert on error
+                    }
+                });
+            });
+            if (snap.empty) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-secondary)">No channels yet</td></tr>';
         } catch(err) {
-            tbody.innerHTML = `<tr><td colspan="4" style="color:#ff6b6b;padding:16px">${err.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="color:#ff6b6b;padding:16px">${err.message}</td></tr>`;
         }
     }
 

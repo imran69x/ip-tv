@@ -238,3 +238,22 @@
   border-radius: 8px;
   border: 1px solid rgba(255,107,107,0.3);
 }
+
+/* ── Mobile Responsiveness ── */
+@media (max-width: 480px) {
+  .sub-modal-content {
+    padding: 24px 20px;
+  }
+  .sub-header h2 {
+    font-size: 22px;
+  }
+  .plans-grid {
+    grid-template-columns: 1fr;
+  }
+  .expired-card {
+    padding: 32px 24px;
+  }
+  .expired-card h2 {
+    font-size: 22px;
+  }
+}

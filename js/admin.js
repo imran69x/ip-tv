@@ -440,15 +440,24 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // ── SETTINGS ──
+    let currentLogoBase64 = '';
+
     async function loadSettings() {
         try {
             const doc = await db.collection("settings").doc("general").get();
             if (doc.exists) {
                 const url = doc.data().logoUrl || '';
-                document.getElementById('settings-logo-url').value = url;
+                if (url.startsWith('data:image')) {
+                    currentLogoBase64 = url;
+                    document.getElementById('settings-logo-url').value = '';
+                } else {
+                    document.getElementById('settings-logo-url').value = url;
+                    currentLogoBase64 = '';
+                }
+                
                 if (url) {
                     document.getElementById('settings-logo-preview').src = url;
-                    document.getElementById('settings-logo-preview').style.display = 'inline-block';
+                    document.getElementById('settings-logo-preview').style.display = 'block';
                     document.getElementById('settings-logo-fallback').style.display = 'none';
                 }
             }
@@ -459,17 +468,38 @@ document.addEventListener("DOMContentLoaded", () => {
         const url = e.target.value;
         const img = document.getElementById('settings-logo-preview');
         const fb = document.getElementById('settings-logo-fallback');
-        if (url) { img.src = url; img.style.display = 'inline-block'; fb.style.display = 'none'; }
-        else { img.style.display = 'none'; fb.style.display = 'inline-block'; }
+        document.getElementById('settings-logo-file').value = ''; // clear file if url is typed
+        currentLogoBase64 = '';
+        if (url) { img.src = url; img.style.display = 'block'; fb.style.display = 'none'; }
+        else { img.style.display = 'none'; fb.style.display = 'block'; }
+    });
+
+    document.getElementById('settings-logo-file').addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        document.getElementById('settings-logo-url').value = ''; // clear url if file is selected
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            currentLogoBase64 = event.target.result;
+            const img = document.getElementById('settings-logo-preview');
+            const fb = document.getElementById('settings-logo-fallback');
+            img.src = currentLogoBase64; 
+            img.style.display = 'block'; 
+            fb.style.display = 'none';
+        };
+        reader.readAsDataURL(file);
     });
 
     document.getElementById('btn-save-settings').addEventListener('click', async () => {
         const btn = document.getElementById('btn-save-settings');
         const msg = document.getElementById('settings-message');
         btn.textContent = 'Saving...'; btn.disabled = true;
-        const url = document.getElementById('settings-logo-url').value.trim();
+        
+        const urlInput = document.getElementById('settings-logo-url').value.trim();
+        const finalUrl = currentLogoBase64 || urlInput;
+        
         try {
-            await db.collection("settings").doc("general").set({ logoUrl: url }, { merge: true });
+            await db.collection("settings").doc("general").set({ logoUrl: finalUrl }, { merge: true });
             msg.textContent = 'Settings saved successfully! Refresh page to see changes globally.';
             msg.classList.remove('hidden');
             if (typeof loadAppSettings === 'function') loadAppSettings(); // update current page
@@ -478,7 +508,7 @@ document.addEventListener("DOMContentLoaded", () => {
             msg.style.color = 'var(--error)';
             msg.classList.remove('hidden');
         } finally {
-            btn.textContent = 'Save Settings'; btn.disabled = false;
+            btn.textContent = 'Save Logo Settings'; btn.disabled = false;
             setTimeout(() => msg.classList.add('hidden'), 5000);
         }
     });

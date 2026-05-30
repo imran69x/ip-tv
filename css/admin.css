@@ -236,3 +236,61 @@
   gap: 12px;
   margin-top: 24px;
 }
+
+/* ── Mobile Responsiveness ── */
+@media (max-width: 768px) {
+  .admin-layout {
+    flex-direction: column;
+  }
+  .admin-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-glass);
+  }
+  .sidebar-header {
+    padding: 12px 16px;
+  }
+  .admin-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 8px 16px;
+    gap: 8px;
+    white-space: nowrap;
+  }
+  .nav-item {
+    padding: 8px 12px;
+    border-left: none;
+    border-bottom: 2px solid transparent;
+    border-radius: 6px;
+  }
+  .nav-item.active {
+    border-left-color: transparent;
+    border-bottom-color: var(--accent-cyan);
+    background: rgba(0, 212, 255, 0.1);
+  }
+  .admin-main {
+    padding: 16px;
+  }
+  .users-grid {
+    grid-template-columns: 1fr;
+  }
+  .panel-section {
+    height: 400px; /* Fixed height for mobile */
+  }
+  .header-actions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .header-actions > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+  #admin-channel-search {
+    width: 100% !important;
+    margin-right: 0 !important;
+    margin-bottom: 8px;
+  }
+}
